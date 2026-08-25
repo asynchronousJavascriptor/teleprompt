@@ -1,169 +1,417 @@
 <!doctype html>
 <html lang="hi">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Simple Teleprompter</title>
-<style>
-  :root { --font-size: 58px; --line-height: 1.35; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:#111; color:#fff; }
-  button, textarea, input { font: inherit; }
-  #setup { min-height:100vh; padding:24px; background:#f5f5f5; color:#111; }
-  #setup h1 { margin:0 0 8px; font-size:28px; }
-  #setup p { margin:0 0 16px; color:#555; }
-  textarea { width:100%; min-height:58vh; resize:vertical; padding:16px; border:1px solid #aaa; border-radius:10px; background:#fff; color:#111; font-size:18px; line-height:1.5; }
-  .setup-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
-  button { border:1px solid #555; border-radius:9px; padding:10px 14px; cursor:pointer; background:#222; color:#fff; }
-  button:focus, textarea:focus, input:focus { outline:3px solid #6aa9ff; outline-offset:2px; }
-  #prompter { display:none; height:100vh; overflow:hidden; background:#000; }
-  #toolbar { position:fixed; z-index:10; top:0; left:0; right:0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:9px 12px; background:rgba(20,20,20,.94); border-bottom:1px solid #444; }
-  #toolbar .spacer { flex:1; }
-  #toolbar label { display:flex; align-items:center; gap:6px; font-size:14px; }
-  #speed { width:130px; }
-  #viewport { position:absolute; inset:58px 0 0; overflow:auto; scroll-behavior:auto; }
-  #contentWrap { max-width:1100px; margin:0 auto; padding:20vh 5vw 70vh; transform-origin:center top; }
-  #content { white-space:pre-wrap; overflow-wrap:anywhere; font-size:var(--font-size); line-height:var(--line-height); font-weight:500; }
-  #content h1 { font-size:1.45em; line-height:1.12; margin:.75em 0 .35em; }
-  #content h2 { font-size:1.22em; line-height:1.18; margin:.75em 0 .35em; }
-  #content h3 { font-size:1.08em; line-height:1.2; margin:.65em 0 .3em; }
-  #content p { margin:.28em 0; white-space:pre-wrap; }
-  #content blockquote { margin:.5em 0; padding-left:.55em; border-left:.12em solid #888; }
-  #content strong { font-weight:800; }
-  #content em { font-style:italic; }
-  .mirror #contentWrap { transform:scaleX(-1); }
-  .small-screen #contentWrap { max-width:760px; }
-  .large-screen #contentWrap { max-width:1450px; }
-  #help { font-size:12px; opacity:.7; padding:0 6px; }
-  @media (max-width:700px) {
-    :root { --font-size: 38px; }
-    #toolbar { gap:5px; }
-    #toolbar button { padding:8px 10px; }
-    #viewport { inset:104px 0 0; }
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Simple Teleprompter</title>
+  <style>
+    :root {
+      --font-size: 58px;
+      --line-height: 1.35;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: #111;
+      color: #fff;
+    }
+
+    button,
+    textarea,
+    input {
+      font: inherit;
+    }
+
+    #setup {
+      min-height: 100vh;
+      padding: 24px;
+      background: #f5f5f5;
+      color: #111;
+    }
+
+    #setup h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    #setup p {
+      margin: 0 0 16px;
+      color: #555;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 58vh;
+      resize: vertical;
+      padding: 16px;
+      border: 1px solid #aaa;
+      border-radius: 10px;
+      background: #fff;
+      color: #111;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    .setup-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    button {
+      border: 1px solid #555;
+      border-radius: 9px;
+      padding: 10px 14px;
+      cursor: pointer;
+      background: #222;
+      color: #fff;
+    }
+
+    button:focus,
+    textarea:focus,
+    input:focus {
+      outline: 3px solid #6aa9ff;
+      outline-offset: 2px;
+    }
+
+    #prompter {
+      display: none;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      background: #000;
+    }
+
+    body.presentation #toolbar {
+      display: none;
+    }
+
+    body.presentation #viewport {
+      inset: 0;
+    }
+
+    #exitPresentation {
+      display: none;
+      position: fixed;
+      z-index: 20;
+      top: max(10px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
+      opacity: .35;
+    }
+
+    body.presentation #exitPresentation {
+      display: block;
+    }
+
+    @supports (padding: max(0px)) {
+      #toolbar {
+        padding-top: max(9px, env(safe-area-inset-top));
+      }
+    }
+
+    #toolbar {
+      position: fixed;
+      z-index: 10;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 9px 12px;
+      background: rgba(20, 20, 20, .94);
+      border-bottom: 1px solid #444;
+    }
+
+    #toolbar .spacer {
+      flex: 1;
+    }
+
+    #toolbar label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+
+    #speed {
+      width: 130px;
+    }
+
+    #viewport {
+      position: absolute;
+      inset: 58px 0 0;
+      overflow: auto;
+      scroll-behavior: auto;
+    }
+
+    #contentWrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20vh 5vw 70vh;
+      transform-origin: center top;
+    }
+
+    #content {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: var(--font-size);
+      line-height: var(--line-height);
+      font-weight: 500;
+    }
+
+    #content h1 {
+      font-size: 1.45em;
+      line-height: 1.12;
+      margin: .75em 0 .35em;
+    }
+
+    #content h2 {
+      font-size: 1.22em;
+      line-height: 1.18;
+      margin: .75em 0 .35em;
+    }
+
+    #content h3 {
+      font-size: 1.08em;
+      line-height: 1.2;
+      margin: .65em 0 .3em;
+    }
+
+    #content p {
+      margin: .28em 0;
+      white-space: pre-wrap;
+    }
+
+    #content blockquote {
+      margin: .5em 0;
+      padding-left: .55em;
+      border-left: .12em solid #888;
+    }
+
+    #content strong {
+      font-weight: 800;
+    }
+
+    #content em {
+      font-style: italic;
+    }
+
+    .mirror #contentWrap {
+      transform: scaleX(-1);
+    }
+
+    .small-screen #contentWrap {
+      max-width: 760px;
+    }
+
+    .large-screen #contentWrap {
+      max-width: 1450px;
+    }
+
+    #help {
+      font-size: 12px;
+      opacity: .7;
+      padding: 0 6px;
+    }
+
+    @media (max-width:700px) {
+      :root {
+        --font-size: 38px;
+      }
+
+      #toolbar {
+        gap: 5px;
+      }
+
+      #toolbar button {
+        padding: 8px 10px;
+      }
+
+      #viewport {
+        inset: 104px 0 0;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<section id="setup">
-  <h1>Simple Teleprompter</h1>
-  <p>अपना text नीचे paste करें. Line breaks उसी order में रहेंगे. Markdown headings जैसे <b># Heading</b>, <b>## Heading</b>, <b>**bold**</b> भी बड़े/बोल्ड दिखेंगे.</p>
-  <textarea id="input" aria-label="Teleprompter text" placeholder="Paste your script here..."></textarea>
-  <div class="setup-actions">
-    <button id="showBtn">OK — Show Teleprompter</button>
-    <button id="clearBtn">Clear</button>
-  </div>
-</section>
+  <section id="setup">
+    <h1>Simple Teleprompter</h1>
+    <p>अपना text नीचे paste करें. Line breaks उसी order में रहेंगे. Markdown headings जैसे <b># Heading</b>, <b>##
+        Heading</b>, <b>**bold**</b> भी बड़े/बोल्ड दिखेंगे.</p>
+    <textarea id="input" aria-label="Teleprompter text" placeholder="Paste your script here..."></textarea>
+    <div class="setup-actions">
+      <button id="showBtn">OK — Show Teleprompter</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+  </section>
 
-<section id="prompter" aria-label="Teleprompter">
-  <div id="toolbar">
-    <button id="backBtn" title="Edit text">Edit</button>
-    <button id="playBtn" title="Space">▶ Play</button>
-    <button id="topBtn">Top</button>
-    <button id="fontDown">A−</button>
-    <button id="fontUp">A+</button>
-    <button id="screenBtn">Screen: Normal</button>
-    <button id="mirrorBtn">Mirror</button>
-    <label>Speed
-      <input id="speed" type="range" min="0" max="12" step="0.25" value="2.5">
-      <span id="speedValue">2.5</span>
-    </label>
-    <div class="spacer"></div>
-    <button id="fullscreenBtn">Fullscreen</button>
-    <span id="help">Space play/pause · ↑↓ speed · ←→ scroll · Esc exits fullscreen</span>
-  </div>
-  <div id="viewport">
-    <main id="contentWrap"><div id="content"></div></main>
-  </div>
-</section>
+  <section id="prompter" aria-label="Teleprompter">
+    <div id="toolbar">
+      <button id="backBtn" title="Edit text">Edit</button>
+      <button id="playBtn" title="Space">▶ Play</button>
+      <button id="topBtn">Top</button>
+      <button id="fontDown">A−</button>
+      <button id="fontUp">A+</button>
+      <button id="screenBtn">Screen: Normal</button>
+      <button id="mirrorBtn">Mirror</button>
+      <label>Speed
+        <input id="speed" type="range" min="0" max="12" step="0.25" value="2.5">
+        <span id="speedValue">2.5</span>
+      </label>
+      <div class="spacer"></div>
+      <button id="presentationBtn">Presentation</button>
+      <button id="fullscreenBtn">Fullscreen</button>
+      <span id="help">Space play/pause · ↑↓ speed · ←→ scroll · Esc exits fullscreen</span>
+    </div>
+    <button id="exitPresentation" aria-label="Exit presentation mode">Controls</button>
+    <div id="viewport">
+      <main id="contentWrap">
+        <div id="content"></div>
+      </main>
+    </div>
+  </section>
 
-<script>
-(() => {
-  const $ = id => document.getElementById(id);
-  const setup=$('setup'), prompter=$('prompter'), input=$('input'), content=$('content'), viewport=$('viewport');
-  const speed=$('speed'), speedValue=$('speedValue'), playBtn=$('playBtn');
-  let playing=false, raf=null, last=0, fontSize=58, screenMode=0;
+  <script>
+    (() => {
+      const $ = id => document.getElementById(id);
+      const setup = $('setup'), prompter = $('prompter'), input = $('input'), content = $('content'), viewport = $('viewport');
+      const speed = $('speed'), speedValue = $('speedValue'), playBtn = $('playBtn');
+      let playing = false, raf = null, last = 0, fontSize = 58, screenMode = 0, scrollPosition = 0;
 
-  // Tiny safe markdown renderer: preserves source order and line breaks.
-  function esc(s){ return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-  function inline(s){
-    s=esc(s);
-    s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-    s=s.replace(/__(.+?)__/g,'<strong>$1</strong>');
-    s=s.replace(/\*(.+?)\*/g,'<em>$1</em>');
-    return s;
-  }
-  function render(text){
-    const lines=text.replace(/\r\n?/g,'\n').split('\n');
-    return lines.map(line=>{
-      if(/^###\s+/.test(line)) return '<h3>'+inline(line.replace(/^###\s+/,''))+'</h3>';
-      if(/^##\s+/.test(line)) return '<h2>'+inline(line.replace(/^##\s+/,''))+'</h2>';
-      if(/^#\s+/.test(line)) return '<h1>'+inline(line.replace(/^#\s+/,''))+'</h1>';
-      if(/^>\s?/.test(line)) return '<blockquote>'+inline(line.replace(/^>\s?/,''))+'</blockquote>';
-      if(line==='') return '<p><br></p>';
-      return '<p>'+inline(line)+'</p>';
-    }).join('');
-  }
+      // Tiny safe markdown renderer: preserves source order and line breaks.
+      function esc(s) { return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+      function inline(s) {
+        s = esc(s);
+        s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+        s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        return s;
+      }
+      function render(text) {
+        const lines = text.replace(/\r\n?/g, '\n').split('\n');
+        return lines.map(line => {
+          if (/^###\s+/.test(line)) return '<h3>' + inline(line.replace(/^###\s+/, '')) + '</h3>';
+          if (/^##\s+/.test(line)) return '<h2>' + inline(line.replace(/^##\s+/, '')) + '</h2>';
+          if (/^#\s+/.test(line)) return '<h1>' + inline(line.replace(/^#\s+/, '')) + '</h1>';
+          if (/^>\s?/.test(line)) return '<blockquote>' + inline(line.replace(/^>\s?/, '')) + '</blockquote>';
+          if (line === '') return '<p><br></p>';
+          return '<p>' + inline(line) + '</p>';
+        }).join('');
+      }
 
-  function show(){
-    content.innerHTML=render(input.value);
-    setup.style.display='none';
-    prompter.style.display='block';
-    viewport.scrollTop=0;
-    localStorage.setItem('teleprompterText', input.value);
-  }
-  function pause(){ playing=false; playBtn.textContent='▶ Play'; cancelAnimationFrame(raf); raf=null; }
-  function play(){
-    if(playing){ pause(); return; }
-    playing=true; playBtn.textContent='⏸ Pause'; last=performance.now(); raf=requestAnimationFrame(tick);
-  }
-  function tick(now){
-    if(!playing) return;
-    const dt=Math.min(50, now-last); last=now;
-    const pxPerSec=Number(speed.value)*18;
-    viewport.scrollTop += pxPerSec*dt/1000;
-    if(viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight-2){ pause(); return; }
-    raf=requestAnimationFrame(tick);
-  }
-  function setFont(n){
-    fontSize=Math.max(24,Math.min(110,n));
-    document.documentElement.style.setProperty('--font-size',fontSize+'px');
-  }
+      function show() {
+        content.innerHTML = render(input.value);
+        setup.style.display = 'none';
+        prompter.style.display = 'block';
+        viewport.scrollTop = 0;
+        localStorage.setItem('teleprompterText', input.value);
+      }
+      function pause() { playing = false; playBtn.textContent = '▶ Play'; if (raf) cancelAnimationFrame(raf); raf = null; }
+      function play() {
+        if (playing) { pause(); return; }
+        playing = true; playBtn.textContent = '⏸ Pause'; last = performance.now(); scrollPosition = viewport.scrollTop; raf = requestAnimationFrame(tick);
+      }
+      function tick(now) {
+        if (!playing) return;
+        const dt = Math.min(80, now - last); last = now;
 
-  $('showBtn').onclick=show;
-  $('clearBtn').onclick=()=>{ input.value=''; input.focus(); };
-  $('backBtn').onclick=()=>{ pause(); prompter.style.display='none'; setup.style.display='block'; input.focus(); };
-  playBtn.onclick=play;
-  $('topBtn').onclick=()=>{ pause(); viewport.scrollTop=0; };
-  $('fontDown').onclick=()=>setFont(fontSize-4);
-  $('fontUp').onclick=()=>setFont(fontSize+4);
-  $('mirrorBtn').onclick=()=>document.body.classList.toggle('mirror');
-  $('screenBtn').onclick=()=>{
-    screenMode=(screenMode+1)%3;
-    document.body.classList.remove('small-screen','large-screen');
-    if(screenMode===1){ document.body.classList.add('small-screen'); $('screenBtn').textContent='Screen: Small'; }
-    else if(screenMode===2){ document.body.classList.add('large-screen'); $('screenBtn').textContent='Screen: Large'; }
-    else $('screenBtn').textContent='Screen: Normal';
-  };
-  $('fullscreenBtn').onclick=async()=>{
-    try {
-      if(!document.fullscreenElement) await document.documentElement.requestFullscreen();
-      else await document.exitFullscreen();
-    } catch(e){}
-  };
-  speed.oninput=()=>speedValue.textContent=speed.value;
+        // Keep our own fractional scroll position. iPad Safari may round
+        // element.scrollTop to whole pixels, which made low speeds appear stuck.
+        const pxPerSec = Number(speed.value) * 18;
+        scrollPosition += pxPerSec * dt / 1000;
 
-  document.addEventListener('keydown',e=>{
-    if(prompter.style.display!=='block') return;
-    if(e.code==='Space'){ e.preventDefault(); play(); }
-    else if(e.key==='ArrowUp'){ e.preventDefault(); speed.value=Math.min(12,Number(speed.value)+.5); speed.oninput(); }
-    else if(e.key==='ArrowDown'){ e.preventDefault(); speed.value=Math.max(0,Number(speed.value)-.5); speed.oninput(); }
-    else if(e.key==='ArrowRight'){ e.preventDefault(); viewport.scrollBy(0,120); }
-    else if(e.key==='ArrowLeft'){ e.preventDefault(); viewport.scrollBy(0,-120); }
-  });
+        const maxScroll = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
+        if (scrollPosition >= maxScroll) {
+          scrollPosition = maxScroll;
+          viewport.scrollTop = Math.floor(scrollPosition);
+          pause();
+          return;
+        }
 
-  const saved=localStorage.getItem('teleprompterText');
-  if(saved) input.value=saved;
-})();
-</script>
+        viewport.scrollTop = Math.floor(scrollPosition);
+        raf = requestAnimationFrame(tick);
+      }
+      function setFont(n) {
+        fontSize = Math.max(24, Math.min(110, n));
+        document.documentElement.style.setProperty('--font-size', fontSize + 'px');
+      }
+
+      $('showBtn').onclick = show;
+      $('clearBtn').onclick = () => { input.value = ''; input.focus(); };
+      $('backBtn').onclick = () => { pause(); prompter.style.display = 'none'; setup.style.display = 'block'; input.focus(); };
+      playBtn.onclick = play;
+      $('topBtn').onclick = () => { pause(); scrollPosition = 0; viewport.scrollTop = 0; };
+      $('fontDown').onclick = () => setFont(fontSize - 4);
+      $('fontUp').onclick = () => setFont(fontSize + 4);
+      $('mirrorBtn').onclick = () => document.body.classList.toggle('mirror');
+      $('screenBtn').onclick = () => {
+        screenMode = (screenMode + 1) % 3;
+        document.body.classList.remove('small-screen', 'large-screen');
+        if (screenMode === 1) { document.body.classList.add('small-screen'); $('screenBtn').textContent = 'Screen: Small'; }
+        else if (screenMode === 2) { document.body.classList.add('large-screen'); $('screenBtn').textContent = 'Screen: Large'; }
+        else $('screenBtn').textContent = 'Screen: Normal';
+      };
+      function enterPresentation() {
+        document.body.classList.add('presentation');
+      }
+      function exitPresentation() {
+        document.body.classList.remove('presentation');
+      }
+
+      $('presentationBtn').onclick = enterPresentation;
+      $('exitPresentation').onclick = exitPresentation;
+
+      $('fullscreenBtn').onclick = async () => {
+        // Desktop browsers: use real Fullscreen API.
+        // iPad Safari often does not expose requestFullscreen for arbitrary pages,
+        // so fall back to presentation mode instead of silently doing nothing.
+        try {
+          const root = document.documentElement;
+          const requestFS = root.requestFullscreen || root.webkitRequestFullscreen;
+          const exitFS = document.exitFullscreen || document.webkitExitFullscreen;
+
+          if (requestFS) {
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+              if (exitFS) await exitFS.call(document);
+            } else {
+              await requestFS.call(root);
+            }
+          } else {
+            enterPresentation();
+          }
+        } catch (e) {
+          enterPresentation();
+        }
+      };
+      speed.oninput = () => speedValue.textContent = speed.value;
+      viewport.addEventListener('scroll', () => { if (!playing) scrollPosition = viewport.scrollTop; }, { passive: true });
+
+      document.addEventListener('keydown', e => {
+        if (prompter.style.display !== 'block') return;
+        if (e.code === 'Space') { e.preventDefault(); play(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); speed.value = Math.min(12, Number(speed.value) + .5); speed.oninput(); }
+        else if (e.key === 'ArrowDown') { e.preventDefault(); speed.value = Math.max(0, Number(speed.value) - .5); speed.oninput(); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); pause(); viewport.scrollBy(0, 120); scrollPosition = viewport.scrollTop; }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); pause(); viewport.scrollBy(0, -120); scrollPosition = viewport.scrollTop; }
+      });
+
+      const saved = localStorage.getItem('teleprompterText');
+      if (saved) input.value = saved;
+    })();
+  </script>
 </body>
+
 </html>
